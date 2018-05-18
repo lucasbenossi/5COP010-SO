@@ -22,7 +22,7 @@ public class Server {
             
             listener.close();
         } catch(Exception e) {
-        	System.out.println("ERRO: "+e);
+        	e.printStackTrace();
         } finally {
         	try {
         		listener.close();
@@ -49,6 +49,7 @@ public class Server {
 				while(scan.hasNextLine()) {
 					String line = scan.nextLine();
 					System.out.println(line);
+					Thread.sleep(500);
 					stream.println(scan.nextLine());
 				}
 				scan.close();

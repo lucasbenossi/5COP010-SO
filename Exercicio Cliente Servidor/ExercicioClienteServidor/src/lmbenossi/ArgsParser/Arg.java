@@ -2,7 +2,8 @@ package lmbenossi.ArgsParser;
 
 public enum Arg {
 	SERVER("-server", Type.BOOLEAN),
-	CLIENT("-client", Type.STRING);
+	CLIENT("-client", Type.STRING),
+	PORT("-port", Type.INTEGER);
 	
 	private enum Type{
 		BOOLEAN, STRING, INTEGER;
