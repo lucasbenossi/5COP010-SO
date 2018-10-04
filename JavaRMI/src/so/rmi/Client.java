@@ -11,7 +11,6 @@ import java.util.List;
 import javax.imageio.ImageIO;
 
 public class Client {
-	public static String host = "192.168.0.3";
 	public static List<Container> partesCinza = new ArrayList<>();
 	
 	public static void main(String[] args) throws Exception {
