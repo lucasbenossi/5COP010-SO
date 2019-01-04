@@ -13,15 +13,15 @@ public class Client implements Runnable {
 		try (Socket socket = Globals.listener.accept();
 				Scanner scan = new Scanner(socket.getInputStream());) {
 			
-			String message = scan.nextLine();
+			String message = scan.nextLine().trim();
 			
 			switch (message.substring(0, 2)) {
 			case "00":
-				System.out.println("Canal cheio, tentando outro cliente.");
+				System.out.println("Canal cheio, tentando outro cliente");
 				//TODO tentar conectar outro cliente
 				break;
 			case "10":
-				System.out.println("Conectado so servidor, iniciando Thread.");
+				System.out.println("Conectado so servidor, iniciando Thread");
 				thread = new Thread(this);
 				thread.start();
 				break;
@@ -37,22 +37,26 @@ public class Client implements Runnable {
 
 	@Override
 	public void run() {
+		Server server = new Server();
+		
 		while(true) {
 			try (Socket socket = Globals.listener.accept();
 					FileOutputStream file = new FileOutputStream("video")) {
 				
-				InputStream input = socket.getInputStream();
-				while(input.available() > 0) {
-					byte[] data = new byte[Globals.BUFFER_SIZE];
-					input.read(data);
-					file.write(data);
+				InputStream in = socket.getInputStream();
+				byte[] buffer = new byte[Globals.BUFFER_SIZE];
+				while(in.read(buffer) > 0) {
+					file.write(buffer);
 				}
 				
 			} catch (IOException e) {
-				System.out.println("Finalizando Thread.");
+				System.out.println("Finalizando Thread");
+				server.stop();
 				break;
 			}
 			System.out.println("Vídeo recebido");
+			
+			server.sendVideo();
 		}
 	}
 }

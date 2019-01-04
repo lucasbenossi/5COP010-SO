@@ -9,20 +9,23 @@ import java.util.Scanner;
 public class Main {
 
 	public static void main(String[] args) {
+		if(args.length > 0) {
+			Globals.servidor = args[0];
+		}
 		
 		try (Scanner scan = new Scanner(System.in);) {
 			openServerSocket();
 			
 			while(scan.hasNextLine()) {
-				String message = scan.nextLine();
-				System.out.println("Enviado mensagem " + message.trim());
+				String message = scan.nextLine().trim();
 				
-				try (Socket socket = new Socket(Globals.SERVER, Globals.PORTA_SERVER);
+				try (Socket socket = new Socket(Globals.servidor, Globals.PORTA_SERVER);
 						PrintStream out = new PrintStream(socket.getOutputStream());
 						Scanner in = new Scanner(socket.getInputStream());) {
 					
-					out.print(message);
+					out.println(message);
 					out.flush();
+					System.out.println("Enviado mensagem " + message);
 					
 					switch (message.substring(0, 2)) {
 					case "10":
@@ -51,6 +54,11 @@ public class Main {
 	public static void openServerSocket() throws IOException {
 		if (Globals.listener != null ) {
 			Globals.listener.close();
+			try {
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 		Globals.listener = new ServerSocket(Globals.PORTA_CLIENT);
 	}
