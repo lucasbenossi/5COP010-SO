@@ -27,7 +27,6 @@ public class Canal implements Runnable {
 				System.out.println("Video enviado para " + client);
 				
 			} catch (IOException e) {
-				e.printStackTrace();
 				removeClient(client);
 			}
 		}
