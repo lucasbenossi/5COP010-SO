@@ -1,8 +1,8 @@
 package clientevideo.main;
 
+import java.io.BufferedOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.util.LinkedList;
@@ -19,10 +19,13 @@ public class Canal implements Runnable {
 		for(String client : clients) {
 			try (Socket socket = new Socket(client, Globals.PORTA_CLIENT);
 					FileInputStream file = new FileInputStream("video");
-					OutputStream out = socket.getOutputStream();) {
+					BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream());) {
+				
+				int read;
 				byte[] buffer = new byte[Globals.BUFFER_SIZE];
-				while(file.read(buffer) > 0) {
-					out.write(buffer);
+				while((read = file.read(buffer)) > 0) {
+					out.write(buffer, 0, read);
+					out.flush();
 				}
 				System.out.println("Video enviado para " + client);
 				

@@ -1,8 +1,8 @@
 package clientevideo.main;
 
+import java.io.BufferedInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintStream;
 import java.net.ConnectException;
 import java.net.ServerSocket;
@@ -125,15 +125,18 @@ public class Client implements Runnable {
 	@Override
 	public void run() {
 		Server server = new Server();
+		ProcessBuilder builder = new ProcessBuilder("mpv", "video");
 		
 		while(true) {
 			try (Socket socket = this.listener.accept();
-					FileOutputStream file = new FileOutputStream("video")) {
+					FileOutputStream file = new FileOutputStream("video");
+					BufferedInputStream in = new BufferedInputStream(socket.getInputStream());) {
 				
-				InputStream in = socket.getInputStream();
+				int read;
 				byte[] buffer = new byte[Globals.BUFFER_SIZE];
-				while(in.read(buffer) > 0) {
-					file.write(buffer);
+				while((read = in.read(buffer)) > 0) {
+					file.write(buffer, 0, read);
+					file.flush();
 				}
 				
 			} catch (SocketTimeoutException e) {
@@ -151,6 +154,12 @@ public class Client implements Runnable {
 				e.printStackTrace();
 			}
 			System.out.println("Vídeo recebido");
+			
+			try {
+				builder.start();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 			
 			server.sendVideo();
 		}
