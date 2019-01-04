@@ -4,10 +4,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.net.ConnectException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.Scanner;
 
 public class Client implements Runnable {
@@ -15,32 +17,39 @@ public class Client implements Runnable {
 	private ServerSocket listener = null;
 	private String servidor = null;
 	private String channel = null;
-	private LinkedList<String> serverQueue = new LinkedList<String>();
+	private ArrayList<String> queue = new ArrayList<String>();
+	private int i;
 	
 	public Client(String servidor, String channel) {
 		this.channel = channel;
 		
 		try {
 			listener = new ServerSocket(Globals.PORTA_CLIENT);
+			listener.setSoTimeout(3000);
 			
-			serverQueue.push(servidor);
+			queue.add(servidor);
+			i = 0;
 			tentarServidor();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
-		
 	}
 
-	private void tentarServidor() throws IOException {
-		while(!serverQueue.isEmpty()) {
-			String servidor = serverQueue.pop();
+	private void tentarServidor() {
+		while(i < queue.size()) {
+			String servidor = queue.get(i);
 			System.out.println("Tentando servidor " + servidor);
 			
 			try (Socket socket = new Socket(servidor, Globals.PORTA_SERVER);
 					PrintStream out = new PrintStream(socket.getOutputStream());) {
 				out.println("10" + channel);
 				out.flush();
+			} catch (ConnectException e) {
+				System.out.println("Servidor " + servidor + " rejeitou a conexão");
+				queue.remove(i);
+				continue;
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 			
 			try (Socket socket = this.listener.accept();
@@ -51,7 +60,15 @@ public class Client implements Runnable {
 				switch (message.substring(0, 2)) {
 				case "00":
 					System.out.println("Canal cheio, tentando outro servidor");
-					serverQueue.addAll(getClientesServidor(servidor));
+					for(String cliente : getClientesServidor(servidor)) {
+						if(!queue.contains(cliente)) {
+							queue.add(cliente);
+						}
+					}
+					i++;
+					if(i >= queue.size()) {
+						i = 0;
+					}
 					break;
 				case "10":
 					this.servidor = servidor;
@@ -62,11 +79,14 @@ public class Client implements Runnable {
 				default:
 					break;
 				}
-				
+			} catch (SocketTimeoutException e) {
+				System.out.println("Servidor " + servidor + " não respondeu");
+				queue.remove(i);
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
-		System.out.println("Não existe servidor disponível, desistindo");
-		this.listener.close();
+		System.out.println("Não existem servidores disponíveis, desistindo");
 	}
 	
 	public void stop() {
@@ -76,13 +96,15 @@ public class Client implements Runnable {
 			out.flush();
 			
 			this.listener.close();
-		} catch (IOException e) {
+			this.thread.join();
+		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
 		}
 	}
 	
 	public ArrayList<String> getClientesServidor(String servidor) throws IOException {
 		ArrayList<String> strings = new ArrayList<String>();
+		
 		try (Socket socket = new Socket(servidor, Globals.PORTA_SERVER);
 				PrintStream out = new PrintStream(socket.getOutputStream());
 				Scanner in = new Scanner(socket.getInputStream());) {
@@ -96,6 +118,7 @@ public class Client implements Runnable {
 				}
 			}
 		} 
+		
 		return strings;
 	}
 
@@ -113,10 +136,19 @@ public class Client implements Runnable {
 					file.write(buffer);
 				}
 				
-			} catch (IOException e) {
+			} catch (SocketTimeoutException e) {
+				System.out.println("Servidor " + servidor + " morreu");
+				server.stop();
+				queue.remove(i);
+				i = 0;
+				tentarServidor();
+				break;
+			} catch (SocketException e) {
 				System.out.println("Finalizando Thread");
 				server.stop();
 				break;
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 			System.out.println("Vídeo recebido");
 			

@@ -10,6 +10,7 @@ import java.util.Scanner;
 public class Server implements Runnable {
 	private ServerSocket listener = null;
 	private Canal canal = null;
+	private Thread thread = null;
 	
 	public Server() {
 		try {
@@ -20,7 +21,8 @@ public class Server implements Runnable {
 		
 		this.canal = new Canal();
 		
-		new Thread(this).start();
+		thread = new Thread(this);
+		thread.start();
 		
 		System.out.println("Server escutando");
 	}
@@ -54,7 +56,8 @@ public class Server implements Runnable {
 	public void stop() {
 		try {
 			this.listener.close();
-		} catch (IOException e) {
+			this.thread.join();
+		} catch (IOException | InterruptedException e) {
 			e.printStackTrace();
 		}
 	}
